@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  PARTNER
+}
+
+enum InvitationStatus {
+  ACTIVE
+  USED
+  REVOKED
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  fullName    String
+  role        Role     @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Invitations created by this partner
+  invitations     Invitation[] @relation("PartnerInvitations")
+  // The invitation this user registered through
+  usedInvitation  Invitation?  @relation("RegisteredUser")
+}
+
+model Invitation {
+  id               String           @id @default(cuid())
+  code             String           @unique @default(cuid())
+  status           InvitationStatus @default(ACTIVE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Partner who created this invitation
+  partner          User             @relation("PartnerInvitations", fields: [partnerId], references: [id])
+  partnerId        String
+
+  // User who registered through this invitation (nullable until used)
+  registeredUser   User?            @relation("RegisteredUser", fields: [registeredUserId], references: [id])
+  registeredUserId String?          @unique
+}
